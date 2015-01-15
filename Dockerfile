@@ -1,44 +1,39 @@
-FROM ubuntu:14.04.1
+FROM centos:centos7
 
-MAINTAINER Wei-Ming Wu <wnameless@gmail.com>
+MAINTAINER Diogo Francisco Costa <diogo.francisco.costa@celfocus.com>
 
-ADD chkconfig /sbin/chkconfig
 ADD init.ora /
 ADD initXETemp.ora /
-ADD oracle-xe_11.2.0-1.0_amd64.debaa /
-ADD oracle-xe_11.2.0-1.0_amd64.debab /
-ADD oracle-xe_11.2.0-1.0_amd64.debac /
-# ADD oracle-xe_11.2.0-1.0_amd64.deb /
-RUN cat /oracle-xe_11.2.0-1.0_amd64.deba* > /oracle-xe_11.2.0-1.0_amd64.deb
+ADD oracle-xe-11.2.0-1.0.x86_64.rpm /
 
-# Install sshd
-RUN apt-get install -y openssh-server
-RUN mkdir /var/run/sshd
-RUN echo 'root:admin' | chpasswd
-RUN sed -i 's/PermitRootLogin without-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd
-RUN echo "export VISIBLE=now" >> /etc/profile
+RUN yum install -y chkconfig dhclient initscripts passwd policycoreutils rootfiles rsyslog
+RUN yum install -y libaio flex bc net-tools vte3
+RUN yum install -y openssh-server openssh-clients
+RUN yum install -y /oracle-xe-11.2.0-1.0.x86_64.rpm && rm /oracle-xe-11.2.0-1.0.x86_64.rpm
 
-# Prepare to install Oracle
-RUN apt-get install -y libaio1 net-tools bc
-RUN ln -s /usr/bin/awk /bin/awk
 RUN mkdir /var/lock/subsys
-RUN chmod 755 /sbin/chkconfig
-
-# Install Oracle
-RUN dpkg --install /oracle-xe_11.2.0-1.0_amd64.deb
 
 RUN mv /init.ora /u01/app/oracle/product/11.2.0/xe/config/scripts
 RUN mv /initXETemp.ora /u01/app/oracle/product/11.2.0/xe/config/scripts
 
-RUN printf 8080\\n1521\\noracle\\noracle\\ny\\n | /etc/init.d/oracle-xe configure
+RUN sed -i -E "s/HOST = [^)]+/HOST = $HOSTNAME/g" /u01/app/oracle/product/11.2.0/xe/network/admin/listener.ora; \
+        echo -e "8080\n1521\nPassword1\nPassword1\nn\n\n" > /tmp/oraclexe.config; \
+        /etc/init.d/oracle-xe configure < /tmp/oraclexe.config; \
+        rm /tmp/oraclexe.config
+
+RUN mkdir -p /ufe/datafiles && chown -R oracle:dba /ufe/datafiles
+
+# import all SQL scripts
+USER oracle
+RUN . /u01/app/oracle/product/11.2.0/xe/bin/oracle_env.sh && for i in $(find /sqlscripts -name '*.sql'); do echo -e "@$i\nexit;\n" | sqlplus / as sysdba; done
+USER root
 
 RUN echo 'export ORACLE_HOME=/u01/app/oracle/product/11.2.0/xe' >> /etc/bash.bashrc
 RUN echo 'export PATH=$ORACLE_HOME/bin:$PATH' >> /etc/bash.bashrc
 RUN echo 'export ORACLE_SID=XE' >> /etc/bash.bashrc
 
 # Remove installation files
-RUN rm /oracle-xe_11.2.0-1.0_amd64.deb*
+RUN rm /oracle-xe-11.2.0-1.0.x86_64.rpm
 
 EXPOSE 22
 EXPOSE 1521
