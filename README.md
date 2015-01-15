@@ -1,7 +1,7 @@
 docker-oracle-xe-11g
 ============================
 
-Oracle Express Edition 11g Release 2 on CentOS 7.
+Oracle Express Edition 11g Release 2 on CentOS 6.6.
 
 ### Installation
 ```

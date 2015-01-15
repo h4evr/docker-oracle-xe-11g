@@ -6,10 +6,9 @@ ADD init.ora /
 ADD initXETemp.ora /
 ADD oracle-xe-11.2.0-1.0.x86_64.rpm /
 
-RUN yum install -y chkconfig dhclient initscripts passwd policycoreutils rootfiles rsyslog
-RUN yum install -y libaio flex bc net-tools vte3
-RUN yum install -y openssh-server openssh-clients
-RUN yum install -y /oracle-xe-11.2.0-1.0.x86_64.rpm && rm /oracle-xe-11.2.0-1.0.x86_64.rpm
+RUN yum install -y libaio flex bc net-tools
+RUN yum install -y openssh-server
+RUN yum install -y /oracle-xe-11.2.0-1.0.x86_64.rpm
 
 RUN mkdir /var/lock/subsys
 
